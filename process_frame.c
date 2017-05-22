@@ -13,7 +13,7 @@
 #include <stdlib.h>
 
 #define IMG_SIZE NUM_COLORS*OSC_CAM_MAX_IMAGE_WIDTH*OSC_CAM_MAX_IMAGE_HEIGHT
-
+#define RGB TRUE
 const int nc = OSC_CAM_MAX_IMAGE_WIDTH;
 const int nr = OSC_CAM_MAX_IMAGE_HEIGHT;
 
@@ -38,6 +38,7 @@ void DetectRegions();
 void DrawBoundingBoxes();
 void ConvertToYCbCr();
 void ChangeDetection();
+void ChangeDetectionYCbCr();
 enum ObjColor selectColor(int index);
 void ResetProcess() {
 	//called when "reset" button is pressed
@@ -57,7 +58,11 @@ void ProcessFrame() {
 		memcpy(data.u8TempImage[THRESHOLD], data.u8TempImage[INDEX0], IMG_SIZE);
 		memset(data.u8TempImage[INDEX1], 0, IMG_SIZE);
 
-		ChangeDetection();
+		if (RGB == TRUE) {
+			ChangeDetection();
+		} else {
+			ChangeDetection();
+		}
 
 		memcpy(data.u8TempImage[THRESHOLD], data.u8TempImage[INDEX1], IMG_SIZE);
 		DetectRegions();
@@ -285,4 +290,40 @@ enum ObjColor selectColor(int index) {
 	}
 
 	return BLUE;
+}
+
+void ChangeDetectionYCbCr() {
+	//{{217,71, 56}, {4, 64, 150}}
+	const int NumFgrCol = 2;
+	uint8 FrgCol[2][2] = { { 128 - 12, 128 + 38 }, { 128 + 24, 128 - 17 } };
+	int r, c, frg, p;
+
+	memset(data.u8TempImage[INDEX0], 0, IMG_SIZE);
+	memset(data.u8TempImage[BACKGROUND], 0, IMG_SIZE);
+
+	for (r = 0; r < nr * nc; r += nc) {
+		for (c = 0; c < nc; c++) {
+			int MinDif = 1 << 30;
+			int MinInd = 0;
+			for (frg = 0; frg < NumFgrCol; frg++) {
+				int Dif = 0;
+				for (p = 0; p < 2; p++) {
+					Dif += abs(
+							(int) data.u8TempImage[INDEX0][(r + c) * NUM_COLORS
+									+ p + 1] - (int) FrgCol[frg][p]);
+				}
+				if (Dif < MinDif) {
+					MinDif = Dif;
+					MinInd = frg;
+				}
+			}
+			if (MinDif < data.ipc.state.nThreshold) {
+				data.u8TempImage[THRESHOLD][(r + c)] = 255;
+				for (p = 0; p < 2; p++) {
+					data.u8TempImage[BACKGROUND][(r + c) * NUM_COLORS + p + 1] =
+							FrgCol[MinInd][p];
+				}
+			}
+		}
+	}
 }
