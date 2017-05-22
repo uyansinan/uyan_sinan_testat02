@@ -61,7 +61,7 @@ void ProcessFrame() {
 		if (RGB == TRUE) {
 			ChangeDetection();
 		} else {
-			ChangeDetection();
+			ChangeDetectionYCbCr();
 		}
 
 		memcpy(data.u8TempImage[THRESHOLD], data.u8TempImage[INDEX1], IMG_SIZE);
