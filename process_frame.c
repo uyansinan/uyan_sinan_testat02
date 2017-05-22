@@ -286,5 +286,3 @@ enum ObjColor selectColor(int index) {
 
 	return BLUE;
 }
-
-//bananaaaaa
