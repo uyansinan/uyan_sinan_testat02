@@ -57,10 +57,9 @@ void ProcessFrame() {
 		memcpy(data.u8TempImage[THRESHOLD], data.u8TempImage[INDEX0], IMG_SIZE);
 		memset(data.u8TempImage[INDEX1], 0, IMG_SIZE);
 
-		memcpy(data.u8TempImage[THRESHOLD], data.u8TempImage[INDEX1], IMG_SIZE);
-
 		ChangeDetection();
 
+		memcpy(data.u8TempImage[THRESHOLD], data.u8TempImage[INDEX1], IMG_SIZE);
 		DetectRegions();
 		DrawBoundingBoxes();
 
@@ -174,11 +173,11 @@ void DetectRegions() {
 
 	//set pixel value to 1 in INDEX0 because the image MUST be binary (i.e. values of 0 and 1)
 	for (i = 0; i < IMG_SIZE; i++) {
-		data.u8TempImage[INDEX0][i] = data.u8TempImage[THRESHOLD][i] ? 1 : 0;
+		data.u8TempImage[INDEX1][i] = data.u8TempImage[THRESHOLD][i] ? 1 : 0;
 	}
 
 	//wrap image INDEX0 in picture struct
-	Pic.data = data.u8TempImage[INDEX0];
+	Pic.data = data.u8TempImage[INDEX1];
 	Pic.width = nc;
 	Pic.height = nr;
 	Pic.type = OSC_PICTURE_BINARY;
@@ -214,7 +213,7 @@ void DrawBoundingBoxes() {
 void ChangeDetection() {
 	//{{217,71, 56}, {4, 64, 150}}
 	const int NumFgrCol = 2;
-	uint8 FrgCol[2][2] = { { 128 - 12, 128 + 38 }, { 128 + 24, 128 - 17 } };
+	uint8 FrgCol[2][3] = { { 217, 71, 56 }, { 4, 64, 150 } };
 	int r, c, frg, p;
 
 	memset(data.u8TempImage[INDEX0], 0, IMG_SIZE);
@@ -226,10 +225,10 @@ void ChangeDetection() {
 			int MinInd = 0;
 			for (frg = 0; frg < NumFgrCol; frg++) {
 				int Dif = 0;
-				for (p = 0; p < 2; p++) {
+				for (p = 1; p < 3; p++) {
 					Dif += abs(
-							(int) data.u8TempImage[THRESHOLD][(r + c)
-									* NUM_COLORS + p] - (int) FrgCol[frg][p]);
+							(int) data.u8TempImage[INDEX0][(r + c) * NUM_COLORS
+									+ p] - (int) FrgCol[frg][p]);
 				}
 				if (Dif < MinDif) {
 					MinDif = Dif;
@@ -237,9 +236,9 @@ void ChangeDetection() {
 				}
 			}
 			if (MinDif < data.ipc.state.nThreshold) {
-				data.u8TempImage[INDEX1][(r + c)] = 255;
-				for (p = 0; p < 2; p++) {
-					data.u8TempImage[BACKGROUND][(r + c) * NUM_COLORS + p + 1] =
+				data.u8TempImage[THRESHOLD][(r + c)] = 255;
+				for (p = 0; p < 3; p++) {
+					data.u8TempImage[BACKGROUND][(r + c) * NUM_COLORS + p] =
 							FrgCol[MinInd][p];
 				}
 			}
@@ -261,6 +260,7 @@ void ConvertToYCbCr() {
 			data.u8TempImage[INDEX0][(r + c) * NUM_COLORS + 0] = Y_;
 			data.u8TempImage[INDEX0][(r + c) * NUM_COLORS + 1] = Cb_;
 			data.u8TempImage[INDEX0][(r + c) * NUM_COLORS + 2] = Cr_;
+
 		}
 	}
 }
